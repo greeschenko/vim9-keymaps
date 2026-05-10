@@ -54,7 +54,7 @@ def FloatingWinColOffset(): number
   if g:keymaps_disable_default_offset
     return 0
   else
-    return (&number ? strlen(string(line('$'))) : 0) + (exists('&signcolumn') && &signcolumn ==# 'yes' ? 2 : 0)
+    return (&number ? len(string(line('$'))) : 0) + (exists('&signcolumn') && &signcolumn ==# 'yes' ? 2 : 0)
   endif
 enddef
 
@@ -165,8 +165,12 @@ export def Close()
     CloseSplitWin()
   endif
 
-  if exists('*lightline#update')
+  if exists('g:keymaps_on_close')
+    g:keymaps_on_close()
+  elseif exists('*lightline#update')
     lightline#update()
+  elseif exists('*airline#update')
+    airline#update()
   endif
 enddef
 

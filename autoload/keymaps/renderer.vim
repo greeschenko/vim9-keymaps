@@ -106,7 +106,7 @@ def CreateRows(layout: dict<any>, mappings: dict<any>): list<string>
 
   var displaynames = GetDisplaynames()
   var key_max_len = 0
-  if get(g:, 'keymaps_align_by_seperator', 1)
+  if get(g:, 'keymaps_align_by_separator', 1)
     for k in smap
       var key = get(displaynames, toupper(k), k)
       var width = strdisplaywidth(key)
@@ -123,7 +123,7 @@ def CreateRows(layout: dict<any>, mappings: dict<any>): list<string>
       continue
     endif
 
-    if get(g:, 'keymaps_align_by_seperator', 1)
+    if get(g:, 'keymaps_align_by_separator', 1)
       var width = strdisplaywidth(key)
       if key_max_len > width
         key = repeat(' ', key_max_len - width) .. key
@@ -165,7 +165,7 @@ def CreateRows(layout: dict<any>, mappings: dict<any>): list<string>
     endif
   endfor
 
-  if g:keymaps_centered && !g:keymaps_vertical
+  if g:keymaps_centered
     var sign_column_size = exists('&signcolumn') && &signcolumn ==# 'yes' ? 2 : 0
     var line_number_size = &number ? len(string(line('$'))) : 0
     var centered_offset = sign_column_size + line_number_size

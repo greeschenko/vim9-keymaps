@@ -42,7 +42,6 @@ var runtime: dict<any> = {}
 var last_runtime_stack: list<dict<any>> = []
 var cur_char = ''
 var reg = ''
-var reg_inited = false
 
 export def Register(prefix: string, dict_val: any, ...args: list<any>)
   var key = has_key(KEYCODES, prefix) ? KEYCODES[prefix] : prefix
@@ -397,13 +396,7 @@ def GetDefaultRegister(): string
 enddef
 
 def GetRegister(): string
-  if has('nvim') && !reg_inited
-    reg = ''
-    reg_inited = true
-  else
-    reg = v:register != GetDefaultRegister() ? '"' .. v:register : ''
-    reg_inited = true
-  endif
+  reg = v:register != GetDefaultRegister() ? '"' .. v:register : ''
   return reg
 enddef
 

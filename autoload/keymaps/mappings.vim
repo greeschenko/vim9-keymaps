@@ -54,7 +54,7 @@ export def Parse(key: string, dict: dict<any>, visual: string)
   if k ==# '<Tab>'
     extend(lines, GetRawMapInfo('<C-I>'))
   endif
-  if !has('nvim') && k[0 : 2] ==# '<M-' && !has('patch-8.2.0815')
+  if k[0 : 2] ==# '<M-' && !has('patch-8.2.0815')
     k = eval('"' .. '\' .. k .. '"')
   endif
   for line in lines
@@ -66,21 +66,6 @@ export def Parse(key: string, dict: dict<any>, visual: string)
     if has_key(mapd, 'desc')
       mapd.rhs = mapd.desc
       remove(mapd, 'desc')
-    elseif has_key(mapd, 'callback')
-      remove(mapd, 'callback')
-      try
-        var sp = split(split(maparg(raw_sp[0], line[0])[ : -2])[-1], ':')
-        var fl = expand(sp[0])
-        var ln = str2nr(sp[-1]) - 1
-        var rhs = trim(readfile(fl)[ln])
-        rhs = split(rhs, 'M.')[1]
-        var api = split(substitute(fl, "\\", '/', 'g'), 'runtime/lua/')[1]
-        api = substitute(api, 'lua$', '', 'g')
-        api = substitute(api, '/', '.', 'g')
-        mapd.rhs = '<Cmd>lua ' .. api .. rhs .. '<Cr>'
-      catch /.*/
-        mapd.rhs = 'lua function not show'
-      endtry
     endif
 
     mapd['display'] = call(g:KeymapsFormatFunc, [mapd.rhs])

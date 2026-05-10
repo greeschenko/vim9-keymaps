@@ -209,14 +209,14 @@ Possible value: `{0, 1}` .
 >
   let g:keymaps_sort_horizontal = 0
 <
-                                              *g:keymaps_align_by_seperator*
+                                              *g:keymaps_align_by_separator*
 Type: |Number|
 Default: `0`
 
 If set to a value other than 1, the entries of each column will be aligned by
 the initial character instead of the separator. Possible value: `{0, 1}` .
 >
-  let g:keymaps_align_by_seperator = 1
+  let g:keymaps_align_by_separator = 1
 <
                                                 *g:keymaps_use_floating_win*
 Type: |Number|
