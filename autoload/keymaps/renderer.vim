@@ -71,6 +71,14 @@ def CalcLayout(mappings: dict<any>): dict<any>
     layout['win_dim'] = min([g:keymaps_max_size, layout['win_dim']])
   endif
 
+  if get(g:, 'keymaps_list_view', 1)
+    layout['n_cols'] = 1
+    layout['n_rows'] = layout['n_items']
+    layout['col_width'] = maxlength + g:keymaps_hspace
+    layout['win_dim'] = layout['n_rows']
+    target_winwidth = g:keymaps_list_width
+  endif
+
   return layout
 enddef
 
@@ -165,7 +173,7 @@ def CreateRows(layout: dict<any>, mappings: dict<any>): list<string>
     endif
   endfor
 
-  if g:keymaps_centered
+  if g:keymaps_centered && !get(g:, 'keymaps_list_view', 0)
     var sign_column_size = exists('&signcolumn') && &signcolumn ==# 'yes' ? 2 : 0
     var line_number_size = &number ? len(string(line('$'))) : 0
     var centered_offset = sign_column_size + line_number_size

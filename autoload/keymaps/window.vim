@@ -3,6 +3,7 @@ vim9script
 var bufnr = -1
 var winnr = -1
 var popup_id = -1
+var prompt_popup_id = -1
 var origin_lnum_width = 0
 var pos: list<any> = []
 var name = ''
@@ -75,11 +76,72 @@ def ApplyCustomFloatingOpts(opts: dict<any>): dict<any>
 enddef
 
 def ShowPopup(rows: list<string>)
+  var offset = FloatingWinColOffset()
+  var col = 0
+  var line = 0
+  var total_width = 0
+  var total_height = 0
+  var display_rows: list<string>
+
+  if get(g:, 'keymaps_list_view', 1)
+    display_rows = rows
+    var text_width = 0
+    for display_row in display_rows
+      text_width = max([text_width, strdisplaywidth(display_row)])
+    endfor
+    var win_width = winwidth(g:keymaps_origin_winid)
+    text_width = min([text_width, g:keymaps_list_width, win_width - 3])
+    total_width = text_width + 2
+    total_height = len(display_rows) + 2
+
+    var win_row = win_screenpos(g:keymaps_origin_winid)[0]
+    var win_col = win_screenpos(g:keymaps_origin_winid)[1]
+    var win_height = winheight(g:keymaps_origin_winid)
+
+    col = win_col + win_width - total_width
+    if col < 1
+      col = 1
+    endif
+
+    var max_line = &lines - &cmdheight
+    line = win_row + win_height - total_height
+    if line + total_height - 1 > max_line
+      line = max_line - total_height + 1
+    endif
+    if line < 1
+      line = 1
+    endif
+  else
+    display_rows = AppendPrompt(rows)
+    total_height = len(display_rows)
+    if g:keymaps_floating_relative_win
+      col = offset + win_screenpos(g:keymaps_origin_winid)[1] + 1
+      total_width = winwidth(g:keymaps_origin_winid) - offset
+      line = &lines - len(rows) - &cmdheight
+    else
+      col = offset + 1
+      total_width = &columns - offset
+      line = &lines - len(rows) - &cmdheight
+    endif
+  endif
+
   if popup_id < 0
-    var opts = {highlight: 'KeymapsFloating'}
+    var opts: dict<any> = {
+      line: line,
+      col: col,
+      highlight: 'KeymapsFloating',
+    }
+    if get(g:, 'keymaps_list_view', 1)
+      opts['border'] = []
+      opts['borderchars'] = ['─', '│', '─', '│', '╭', '╮', '╯', '╰']
+    else
+      opts['minwidth'] = total_width
+      opts['maxwidth'] = total_width
+      opts['minheight'] = total_height
+      opts['maxheight'] = total_height
+    endif
     opts = ApplyCustomFloatingOpts(opts)
-    popup_id = popup_create([], opts)
-    popup_hide(popup_id)
+    popup_id = popup_create(display_rows, opts)
     setbufvar(winbufnr(popup_id), '&filetype', 'keymaps')
     win_execute(popup_id, 'setlocal nonumber nowrap')
     if exists('g:keymaps_floating_vars')
@@ -87,27 +149,59 @@ def ShowPopup(rows: list<string>)
         setwinvar(popup_id, key, val)
       endfor
     endif
+  else
+    if get(g:, 'keymaps_list_view', 1)
+      popup_move(popup_id, {line: line, col: col})
+    else
+      popup_move(popup_id, {
+        line: line,
+        col: col,
+        minwidth: total_width,
+        maxwidth: total_width,
+        minheight: total_height,
+        maxheight: total_height,
+        })
+    endif
+    popup_settext(popup_id, display_rows)
+    popup_show(popup_id)
   endif
 
-  var display_rows = AppendPrompt(rows)
-  var offset = FloatingWinColOffset()
-  var col = 0
-  var maxwidth = 0
-  if g:keymaps_floating_relative_win
-    col = offset + win_screenpos(g:keymaps_origin_winid)[1] + 1
-    maxwidth = winwidth(g:keymaps_origin_winid) - offset
-  else
-    col = offset + 1
-    maxwidth = &columns - offset
+  if get(g:, 'keymaps_list_view', 1)
+    var prompt_text = keymaps#Trigger() .. '- ' .. keymaps#window#Name()
+    var prompt_rows = [prompt_text]
+    var win_row = win_screenpos(g:keymaps_origin_winid)[0]
+    var win_col = win_screenpos(g:keymaps_origin_winid)[1]
+    var win_height = winheight(g:keymaps_origin_winid)
+    var prompt_width = min([strdisplaywidth(prompt_text), g:keymaps_list_width])
+    var prompt_col = win_col + 1
+    var max_line = &lines - &cmdheight
+    var prompt_line = win_row + win_height - 1
+    if prompt_line > max_line
+      prompt_line = max_line
+    endif
+    if prompt_line < 1
+      prompt_line = 1
+    endif
+
+    if prompt_popup_id < 0
+      var prompt_opts: dict<any> = {
+        line: prompt_line,
+        col: prompt_col,
+        minwidth: prompt_width,
+        minheight: 1,
+        highlight: 'KeymapsFloating',
+      }
+      prompt_popup_id = popup_create(prompt_rows, prompt_opts)
+      win_execute(prompt_popup_id, 'setlocal nonumber nowrap')
+    else
+      popup_move(prompt_popup_id, {line: prompt_line, col: prompt_col})
+      popup_settext(prompt_popup_id, prompt_rows)
+      popup_show(prompt_popup_id)
+    endif
+  elseif prompt_popup_id >= 0
+    popup_close(prompt_popup_id)
+    prompt_popup_id = -1
   endif
-  popup_move(popup_id, {
-    col: col,
-    line: &lines - len(rows) - &cmdheight,
-    maxwidth: maxwidth,
-    minwidth: maxwidth,
-    })
-  popup_settext(popup_id, display_rows)
-  popup_show(popup_id)
 enddef
 
 
@@ -163,6 +257,11 @@ export def Close()
     popup_id = -1
   else
     CloseSplitWin()
+  endif
+
+  if prompt_popup_id >= 0
+    popup_close(prompt_popup_id)
+    prompt_popup_id = -1
   endif
 
   if exists('g:keymaps_on_close')
